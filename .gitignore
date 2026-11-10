@@ -1,10 +1,12 @@
 # Binarios e dados gerados
 pousada
+pousada.exe
 test_disponibilidade
 *.dat
 *.tmp
 *.o
 obj/
+.win_conio_stub/
 
 # Prerequisites
 *.d

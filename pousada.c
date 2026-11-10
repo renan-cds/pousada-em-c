@@ -1,17 +1,20 @@
 /*
  * Sistema de Gerenciamento de Pousada
  * Algoritmos II - Linguagem C
+ * Ambiente: Windows (Dev-C++ / MinGW)
  *
  * Conteudo usado conforme a disciplina:
  * struct, typedef, enum, funcoes, menus,
  * string.h (strcpy, strlen, strcmp, strstr),
- * fgets, scanf, limpeza de buffer com getchar,
+ * fgets, scanf, limpeza de buffer,
  * arquivos binarios (fopen, fread, fwrite, fseek, feof, remove, rename).
- * Interface: printf com sequencias ANSI para cores (sem bibliotecas extras).
+ * Interface Windows: conio.h (getch) + system("cls") + cores ANSI.
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <conio.h>
 
 #define MAX_NOME 80
 #define MAX_CPF 15
@@ -24,8 +27,7 @@
 #define ARQ_RESERVAS "reservas.dat"
 #define ARQ_HOSPEDAGENS "hospedagens.dat"
 
-/* Cores ANSI (funcionam no Terminal do Windows 10+, Linux e macOS).
- * Continuam sendo apenas printf com caracteres de controle. */
+/* Cores ANSI no printf (Windows Terminal / Prompt do Windows 10+). */
 #define COR_RESET    "\033[0m"
 #define COR_NEGRITO  "\033[1m"
 #define COR_VERDE    "\033[1;32m"
@@ -115,9 +117,7 @@ typedef struct {
 /* -------------------- utilitarios / interface -------------------- */
 
 void limpar_tela(void) {
-    /* limpa a tela e coloca o cursor no topo */
-    printf("\033[2J\033[H");
-    fflush(stdout);
+    system("cls");
 }
 
 void limpar_buffer(void) {
@@ -158,9 +158,9 @@ void item_menu(int numero, char *texto) {
 }
 
 void pausar(void) {
-    printf("\n%sPressione ENTER para continuar...%s", COR_AMARELO, COR_RESET);
-    fflush(stdout);
-    limpar_buffer();
+    printf("\n%sPressione qualquer tecla para continuar...%s", COR_AMARELO, COR_RESET);
+    getch();
+    printf("\n");
 }
 
 void ler_string(char *destino, int tamanho) {

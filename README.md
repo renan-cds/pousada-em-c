@@ -1,31 +1,27 @@
 # Sistema de Gerenciamento de Pousada (C)
 
-Sistema de pousada em **Linguagem C**, alinhado ao conteúdo de **Algoritmos II**:
-`struct`, `typedef`, `enum`, funções, menus, `string.h`, `fgets`/`scanf`
-com limpeza de buffer (`getchar`), e arquivos binários (`fopen`, `fread`, `fwrite`,
-`fseek`, `feof`, `remove`, `rename`).
+Sistema de pousada em **Linguagem C** para **Windows (Dev-C++ / MinGW)**, alinhado ao conteúdo de **Algoritmos II**.
 
-Um único arquivo-fonte: `pousada.c`.
+Arquivo principal: `pousada.c`
 
-## Compilar e executar
+## Compilar e executar (Windows)
 
-```bash
-gcc -Wall -o pousada pousada.c
-./pousada
+No Dev-C++: abra `pousada.c` e compile/execute (F11 / F10).
+
+Pelo terminal (MinGW):
+
+```bat
+gcc -Wall -o pousada.exe pousada.c
+pousada.exe
 ```
 
-Ou:
+## Interface Windows
 
-```bash
-make
-make run
-```
-
-A interface usa **cores ANSI** (só `printf`). Fica melhor no Terminal do Windows 10+, Windows Terminal, Linux ou macOS. No Prompt antigo do Windows as cores podem não aparecer, mas o sistema continua funcionando.
+- `conio.h` → `getch()` (pressione qualquer tecla)
+- `system("cls")` → limpa a tela
+- Cores ANSI no `printf` (melhor no **Windows Terminal** ou Prompt do Windows 10+)
 
 ## Arquivos gerados
-
-Na pasta do programa:
 
 | Arquivo | Conteúdo |
 |---------|----------|
@@ -46,36 +42,26 @@ Exclusão física: temporário + `remove` + `rename`.
 5. Consultas e Relatórios  
 0. Sair  
 
-## Testes
+## Regra de disponibilidade
 
-```bash
-make test
-rm -f *.dat
-./pousada < tests/fluxo_completo.input
-```
+Período **[check-in, check-out)**: o dia da saída já libera o quarto.
 
-## Regra de disponibilidade (diferencial)
-
-Período no formato **[check-in, check-out)**: o dia da saída já libera o quarto.
-
-Exemplo: reserva 10/11 a 12/11 ocupa os dias 10 e 11; em 12/11 outra reserva pode entrar.
+Exemplo: reserva 10/11 a 12/11 ocupa 10 e 11; em 12/11 outra reserva pode entrar.
 
 ## Roteiro rápido de demonstração
 
 1. Cadastrar 2 hóspedes e 3 quartos  
 2. Reservar quarto 101 de 10/11 a 12/11  
-3. Tentar reservar o mesmo quarto em 11/11–13/11 → deve falhar  
+3. Tentar o mesmo quarto em 11/11–13/11 → deve falhar  
 4. Verificar disponibilidade em 12/11–14/11 → livre  
-5. Check-in da reserva → check-out → ver faturamento  
+5. Check-in → check-out → faturamento  
 6. (Opcional) Marcar no-show em outra reserva ativa  
 
 ## Observações de sala
 
-- Datas no estilo `dma` (dias desde 1900 + bissexto), como na L02  
-- Digito de CPF checado por ASCII (`'0'`..`'9'`)  
-- `ler_data` preenche via ponteiro; códigos = maior do arquivo + 1  
-- Exclusão de hóspede só bloqueia com reserva **ativa** ou hospedagem **em curso**  
-- No-show libera o quarto (status da reserva)  
-- `scanf` validado (pede de novo se a leitura falhar)  
-- Compilação: `gcc -Wall -o pousada pousada.c`  
-- No laboratório Windows: recompile e regenere os `.dat` na máquina da apresentação
+- Datas no estilo `dma` (dias desde 1900 + bissexto)  
+- CPF por ASCII (`'0'`..`'9'`)  
+- `ler_data` via ponteiro; códigos = maior + 1  
+- Exclusão de hóspede só com reserva ativa ou hospedagem em curso  
+- No-show libera o quarto  
+- Regenere os `.dat` na máquina da apresentação (Windows)
