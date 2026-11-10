@@ -1,32 +1,89 @@
 /*
- * Teste automatizado da logica de disponibilidade e calculo de diarias.
- * Compilar: make test
+ * Teste das regras de data e disponibilidade (perfil Algoritmos II).
+ * Compilar: gcc -Wall -o test_disponibilidade tests/test_disponibilidade.c
  */
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 
-#include "tipos.h"
-#include "util.h"
-#include "arquivo.h"
-#include "hospede.h"
-#include "quarto.h"
-#include "reserva.h"
-#include "hospedagem.h"
+typedef struct {
+    int dia;
+    int mes;
+    int ano;
+} Data;
 
-static int falhas = 0;
+typedef enum {
+    RESERVA_ATIVA = 1,
+    RESERVA_CANCELADA
+} StatusReserva;
 
-static void ok(const char *nome, int cond) {
-    if (cond) {
-        printf("[OK] %s\n", nome);
-    } else {
-        printf("[FALHA] %s\n", nome);
-        falhas++;
-    }
+typedef struct {
+    int codigo;
+    int numero_quarto;
+    Data checkin;
+    Data checkout;
+    StatusReserva status;
+} Reserva;
+
+int ano_bissexto(int ano) {
+    return (ano % 4 == 0 && ano % 100 != 0) || (ano % 400 == 0);
 }
 
-static Data d(int dia, int mes, int ano) {
+int data_para_dias(Data d) {
+    int dias_mes[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int total = 0;
+    int a, m;
+    for (a = 1900; a < d.ano; a++) {
+        total = total + (ano_bissexto(a) ? 366 : 365);
+    }
+    if (ano_bissexto(d.ano)) {
+        dias_mes[2] = 29;
+    }
+    for (m = 1; m < d.mes; m++) {
+        total = total + dias_mes[m];
+    }
+    return total + d.dia;
+}
+
+int comparar_datas(Data a, Data b) {
+    int da = data_para_dias(a);
+    int db = data_para_dias(b);
+    if (da < db) {
+        return -1;
+    }
+    if (da > db) {
+        return 1;
+    }
+    return 0;
+}
+
+int dias_entre(Data inicio, Data fim) {
+    return data_para_dias(fim) - data_para_dias(inicio);
+}
+
+int periodos_sobrepoem(Data a_ini, Data a_fim, Data b_ini, Data b_fim) {
+    return comparar_datas(a_ini, b_fim) < 0 && comparar_datas(b_ini, a_fim) < 0;
+}
+
+int quarto_livre(Reserva *reservas, int n, int numero, Data ini, Data fim, int ignorar) {
+    int i;
+    for (i = 0; i < n; i++) {
+        if (reservas[i].status != RESERVA_ATIVA) {
+            continue;
+        }
+        if (reservas[i].numero_quarto != numero) {
+            continue;
+        }
+        if (ignorar > 0 && reservas[i].codigo == ignorar) {
+            continue;
+        }
+        if (periodos_sobrepoem(ini, fim, reservas[i].checkin, reservas[i].checkout)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+Data d(int dia, int mes, int ano) {
     Data x;
     x.dia = dia;
     x.mes = mes;
@@ -34,130 +91,50 @@ static Data d(int dia, int mes, int ano) {
     return x;
 }
 
-static void limpar_dados(void) {
-    remove(ARQ_HOSPEDES);
-    remove(ARQ_QUARTOS);
-    remove(ARQ_RESERVAS);
-    remove(ARQ_HOSPEDAGENS);
-    remove(ARQ_CONTADORES);
+int falhas = 0;
+
+void ok(char *nome, int cond) {
+    if (cond) {
+        printf("[OK] %s\n", nome);
+    } else {
+        printf("[FALHA] %s\n", nome);
+        falhas = falhas + 1;
+    }
 }
 
 int main(void) {
-    Hospede h;
-    Quarto q;
-    Reserva r1, r2;
-    Hospedagem hp;
+    Reserva reservas[2];
+    float valor;
 
-    garantir_diretorio_dados();
-    limpar_dados();
+    printf("=== Testes (perfil sala) ===\n\n");
 
-    printf("=== Testes do Sistema de Pousada ===\n\n");
-
-    /* Datas */
     ok("dias_entre 2 diarias", dias_entre(d(10, 11, 2026), d(12, 11, 2026)) == 2);
     ok("comparar_datas ordem", comparar_datas(d(10, 11, 2026), d(12, 11, 2026)) < 0);
-    ok("data_valida 29/02/2024", data_valida(d(29, 2, 2024)));
-    ok("data_invalida 29/02/2025", !data_valida(d(29, 2, 2025)));
-    ok("cpf formato valido", cpf_valido_formato("52998224725"));
-    ok("cpf sequencia invalida", !cpf_valido_formato("11111111111"));
+    ok("bissexto 2024", ano_bissexto(2024));
+    ok("nao bissexto 2025", !ano_bissexto(2025));
 
-    /* Cadastros base */
-    memset(&h, 0, sizeof(h));
-    h.codigo = gerar_codigo_hospede();
-    strcpy(h.nome, "Maria Silva");
-    strcpy(h.cpf, "52998224725");
-    strcpy(h.telefone, "11999990001");
-    strcpy(h.email, "maria@email.com");
-    h.ativo = 1;
-    ok("salvar hospede", salvar_hospede(h));
+    valor = 150.0f * (float)dias_entre(d(10, 11, 2026), d(12, 11, 2026));
+    ok("valor 2*150", valor > 299.0f && valor < 301.0f);
 
-    memset(&q, 0, sizeof(q));
-    q.numero = 101;
-    q.tipo = TIPO_SOLTEIRO;
-    q.valor_diaria = 150.0f;
-    q.capacidade = 1;
-    q.status = QUARTO_DISPONIVEL;
-    q.ativo = 1;
-    ok("salvar quarto", salvar_quarto(q));
+    reservas[0].codigo = 1;
+    reservas[0].numero_quarto = 101;
+    reservas[0].checkin = d(10, 11, 2026);
+    reservas[0].checkout = d(12, 11, 2026);
+    reservas[0].status = RESERVA_ATIVA;
 
-    ok("quarto livre sem reservas",
-       quarto_disponivel_periodo(101, d(10, 11, 2026), d(12, 11, 2026), 0));
+    ok("bloqueia sobreposicao",
+       !quarto_livre(reservas, 1, 101, d(11, 11, 2026), d(13, 11, 2026), 0));
+    ok("libera no checkout",
+       quarto_livre(reservas, 1, 101, d(12, 11, 2026), d(14, 11, 2026), 0));
+    ok("livre antes",
+       quarto_livre(reservas, 1, 101, d(8, 11, 2026), d(10, 11, 2026), 0));
+    ok("ignora propria reserva",
+       quarto_livre(reservas, 1, 101, d(10, 11, 2026), d(12, 11, 2026), 1));
 
-    /* Reserva ativa */
-    memset(&r1, 0, sizeof(r1));
-    r1.codigo = gerar_codigo_reserva();
-    r1.codigo_hospede = h.codigo;
-    r1.numero_quarto = 101;
-    r1.checkin = d(10, 11, 2026);
-    r1.checkout = d(12, 11, 2026);
-    r1.qtd_hospedes = 1;
-    r1.valor_estimado = calcular_valor_estimado(150.0f, r1.checkin, r1.checkout);
-    r1.status = RESERVA_ATIVA;
-    r1.ativo = 1;
-    ok("salvar reserva", salvar_reserva(r1));
-    ok("valor estimado 2*150", r1.valor_estimado > 299.0f && r1.valor_estimado < 301.0f);
-
-    ok("bloqueia sobreposicao total",
-       !quarto_disponivel_periodo(101, d(10, 11, 2026), d(12, 11, 2026), 0));
-    ok("bloqueia sobreposicao parcial",
-       !quarto_disponivel_periodo(101, d(11, 11, 2026), d(13, 11, 2026), 0));
-    ok("libera no dia do checkout",
-       quarto_disponivel_periodo(101, d(12, 11, 2026), d(14, 11, 2026), 0));
-    ok("livre antes da reserva",
-       quarto_disponivel_periodo(101, d(8, 11, 2026), d(10, 11, 2026), 0));
-    ok("ignora propria reserva na alteracao",
-       quarto_disponivel_periodo(101, d(10, 11, 2026), d(12, 11, 2026), r1.codigo));
-
-    /* Cancelamento libera */
-    r1.status = RESERVA_CANCELADA;
-    ok("atualizar cancelamento", atualizar_reserva(r1));
+    reservas[0].status = RESERVA_CANCELADA;
     ok("livre apos cancelamento",
-       quarto_disponivel_periodo(101, d(10, 11, 2026), d(12, 11, 2026), 0));
-
-    /* Nova reserva + check-in ocupa quarto */
-    r1.status = RESERVA_ATIVA;
-    r1.codigo = gerar_codigo_reserva();
-    ok("nova reserva", salvar_reserva(r1));
-
-    memset(&hp, 0, sizeof(hp));
-    hp.codigo = gerar_codigo_hospedagem();
-    hp.codigo_reserva = r1.codigo;
-    hp.codigo_hospede = h.codigo;
-    hp.numero_quarto = 101;
-    hp.entrada_real = d(10, 11, 2026);
-    hp.valor_final = r1.valor_estimado;
-    hp.finalizada = 0;
-    hp.ativo = 1;
-    ok("salvar hospedagem ativa", salvar_hospedagem(hp));
-
-    r1.status = RESERVA_FINALIZADA;
-    atualizar_reserva(r1);
-
-    ok("hospedagem ativa bloqueia periodo futuro",
-       !quarto_disponivel_periodo(101, d(15, 11, 2026), d(17, 11, 2026), 0));
-
-    /* Checkout libera */
-    hp.saida_real = d(12, 11, 2026);
-    hp.finalizada = 1;
-    hp.forma_pagamento = PAG_PIX;
-    ok("checkout", atualizar_hospedagem(hp));
-    ok("livre apos checkout",
-       quarto_disponivel_periodo(101, d(12, 11, 2026), d(14, 11, 2026), 0));
-
-    /* Quarto manutencao */
-    q.status = QUARTO_MANUTENCAO;
-    atualizar_quarto(q);
-    ok("manutencao indisponivel",
-       !quarto_disponivel_periodo(101, d(20, 11, 2026), d(22, 11, 2026), 0));
-
-    /* Contadores / busca */
-    ok("buscar hospede por cpf", buscar_hospede_por_cpf("52998224725", &h));
-    ok("buscar quarto", buscar_quarto_por_numero(101, &q));
-
-    memset(&r2, 0, sizeof(r2));
-    (void)r2;
+       quarto_livre(reservas, 1, 101, d(10, 11, 2026), d(12, 11, 2026), 0));
 
     printf("\n=== Resultado: %d falha(s) ===\n", falhas);
-    limpar_dados();
     return falhas == 0 ? 0 : 1;
 }

@@ -1,36 +1,24 @@
+# Compilacao no estilo da disciplina (gcc + um unico .c)
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L -Iinclude
-LDFLAGS =
-
-SRC_DIR = src
-OBJ_DIR = obj
+CFLAGS = -Wall -Wextra
 BIN = pousada
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+.PHONY: all clean run test
 
-.PHONY: all clean run dirs test
+all: $(BIN)
 
-all: dirs $(BIN)
+$(BIN): pousada.c
+	$(CC) $(CFLAGS) -o $(BIN) pousada.c
 
-dirs:
-	@mkdir -p $(OBJ_DIR) data
-
-$(BIN): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-run: all
+run: $(BIN)
 	./$(BIN)
 
-TEST_BIN = test_disponibilidade
-TEST_OBJS = $(filter-out $(OBJ_DIR)/main.o,$(OBJS))
+# Teste automatizado da logica de datas/disponibilidade (arquivo unico)
+test: test_disponibilidade
+	./test_disponibilidade
 
-test: dirs $(TEST_OBJS)
-	$(CC) $(CFLAGS) -o $(TEST_BIN) tests/test_disponibilidade.c $(TEST_OBJS) $(LDFLAGS)
-	./$(TEST_BIN)
+test_disponibilidade: tests/test_disponibilidade.c
+	$(CC) $(CFLAGS) -o test_disponibilidade tests/test_disponibilidade.c
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN) $(TEST_BIN)
+	rm -f $(BIN) test_disponibilidade *.dat *.tmp

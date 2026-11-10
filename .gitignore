@@ -1,14 +1,15 @@
-# Projeto pousada
+# Binarios e dados gerados
 pousada
 test_disponibilidade
+*.dat
+*.tmp
+*.o
 obj/
-data/*.dat
 
 # Prerequisites
 *.d
 
 # Object files
-*.o
 *.ko
 *.obj
 *.elf
@@ -18,44 +19,18 @@ data/*.dat
 *.map
 *.exp
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
+# Shared objects
 *.so
-*.so.*
 *.dylib
+*.dll
 
 # Executables
 *.exe
 *.out
 *.app
-*.i*86
-*.x86_64
-*.hex
 
-# Debug files
+# Debug
 *.dSYM/
 *.su
 *.idb
 *.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
-*.dwo

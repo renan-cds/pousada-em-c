@@ -1,58 +1,41 @@
 # Sistema de Gerenciamento de Pousada (C)
 
-Sistema completo em linguagem C para controle de hóspedes, quartos, reservas e hospedagens de uma pequena pousada, usando apenas **structs** e **arquivos binários** (sem banco de dados).
+Sistema de pousada em **Linguagem C**, alinhado ao conteúdo de **Algoritmos II**:
+`struct`, `typedef`, `enum`, funções, menus, `string.h`, `ctype.h`, `fgets`/`scanf`
+com limpeza de buffer, e arquivos binários (`fopen`, `fread`, `fwrite`, `fseek`,
+`feof`, `remove`, `rename`).
 
-## Requisitos
-
-- GCC com suporte a C11
-- Make
+Um único arquivo-fonte: `pousada.c`.
 
 ## Compilar e executar
 
 ```bash
-make
+gcc -Wall -o pousada pousada.c
 ./pousada
 ```
 
 Ou:
 
 ```bash
+make
 make run
 ```
 
-## Testes automatizados
+## Arquivos gerados
 
-```bash
-make test
-```
-
-Há também um roteiro interativo em `tests/fluxo_completo.input`:
-
-```bash
-rm -f data/*.dat
-./pousada < tests/fluxo_completo.input
-```
-
-## Estrutura
-
-```
-include/     headers (tipos, módulos)
-src/         implementação
-data/        arquivos .dat gerados em tempo de execução
-tests/       testes e roteiro de entrada
-```
-
-### Arquivos de dados
+Na pasta do programa (sem bibliotecas POSIX):
 
 | Arquivo | Conteúdo |
 |---------|----------|
-| `data/hospedes.dat` | Cadastro de hóspedes |
-| `data/quartos.dat` | Cadastro de quartos |
-| `data/reservas.dat` | Reservas |
-| `data/hospedagens.dat` | Check-ins / check-outs |
-| `data/contadores.dat` | Próximos códigos automáticos |
+| `hospedes.dat` | Hóspedes |
+| `quartos.dat` | Quartos |
+| `reservas.dat` | Reservas |
+| `hospedagens.dat` | Hospedagens |
+| `contadores.dat` | Próximos códigos |
 
-## Menu principal
+Exclusão física: o registro é removido regravando um temporário e usando `remove` + `rename`.
+
+## Menu
 
 1. Cadastro de Hóspedes  
 2. Cadastro de Quartos  
@@ -61,18 +44,17 @@ tests/       testes e roteiro de entrada
 5. Consultas e Relatórios  
 0. Sair  
 
-## Regras importantes
+## Testes
 
-- Disponibilidade por período: o dia de check-out libera o quarto para nova entrada (`[check-in, check-out)`).
-- Valor estimado = diárias × valor do quarto.
-- Exclusão valida se o registro está em uso (reservas/hospedagens).
-- CPF único; datas coerentes; capacidade do quarto respeitada.
-- Quarto em manutenção não pode ser reservado.
+```bash
+make test
+rm -f *.dat
+./pousada < tests/fluxo_completo.input
+```
 
-## Relatórios
+## Observações de sala
 
-- Reservas por período  
-- Hóspedes atualmente hospedados  
-- Quartos disponíveis em uma data  
-- Faturamento por período  
-- Histórico de um hóspede  
+- Datas no estilo `dma` (dias desde 1900 + bissexto), como na L02  
+- Disponibilidade por período `[check-in, check-out)`  
+- Valor = diárias × valor do quarto  
+- Sem Makefile obrigatório: basta `gcc pousada.c -o pousada`
