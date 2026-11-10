@@ -5,14 +5,13 @@
  * Conteudo usado conforme a disciplina:
  * struct, typedef, enum, funcoes, menus,
  * string.h (strcpy, strlen, strcmp, strstr),
- * ctype.h, fgets, scanf, limpeza de buffer,
+ * fgets, scanf, limpeza de buffer com getchar,
  * arquivos binarios (fopen, fread, fwrite, fseek, feof, remove, rename).
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #define MAX_NOME 80
 #define MAX_CPF 15
@@ -24,7 +23,6 @@
 #define ARQ_QUARTOS "quartos.dat"
 #define ARQ_RESERVAS "reservas.dat"
 #define ARQ_HOSPEDAGENS "hospedagens.dat"
-#define ARQ_CONTADORES "contadores.dat"
 
 /* -------------------- tipos -------------------- */
 
@@ -102,19 +100,10 @@ typedef struct {
     int finalizada;
 } Hospedagem;
 
-typedef struct {
-    int prox_hospede;
-    int prox_reserva;
-    int prox_hospedagem;
-} Contadores;
-
 /* -------------------- utilitarios -------------------- */
 
 void limpar_tela(void) {
-    int i;
-    for (i = 0; i < 3; i++) {
-        printf("\n");
-    }
+    printf("\n\n\n");
 }
 
 void limpar_buffer(void) {
@@ -137,7 +126,7 @@ void ler_string(char *destino, int tamanho) {
     }
 }
 
-int ler_inteiro(const char *prompt) {
+int ler_inteiro(char *prompt) {
     int valor;
     printf("%s", prompt);
     scanf("%d", &valor);
@@ -145,7 +134,7 @@ int ler_inteiro(const char *prompt) {
     return valor;
 }
 
-float ler_float(const char *prompt) {
+float ler_float(char *prompt) {
     float valor;
     printf("%s", prompt);
     scanf("%f", &valor);
@@ -153,7 +142,7 @@ float ler_float(const char *prompt) {
     return valor;
 }
 
-int confirmar(const char *prompt) {
+int confirmar(char *prompt) {
     char resp[8];
     printf("%s", prompt);
     ler_string(resp, 8);
@@ -224,50 +213,54 @@ int dias_entre(Data inicio, Data fim) {
     return data_para_dias(fim) - data_para_dias(inicio);
 }
 
-Data ler_data(const char *prompt) {
-    Data d;
+void ler_data(char *prompt, Data *d) {
     while (1) {
         printf("%s (DD/MM/AAAA): ", prompt);
-        scanf("%d/%d/%d", &d.dia, &d.mes, &d.ano);
+        scanf("%d/%d/%d", &d->dia, &d->mes, &d->ano);
         limpar_buffer();
-        if (data_valida(d)) {
-            return d;
+        if (data_valida(*d)) {
+            return;
         }
         printf("Data invalida. Use o formato DD/MM/AAAA.\n");
     }
 }
 
-Data data_mais_um_dia(Data d) {
+void data_mais_um_dia(Data d, Data *r) {
     int dias_mes[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    Data r = d;
-    if (ano_bissexto(r.ano)) {
+    r->dia = d.dia;
+    r->mes = d.mes;
+    r->ano = d.ano;
+    if (ano_bissexto(r->ano)) {
         dias_mes[2] = 29;
     }
-    r.dia = r.dia + 1;
-    if (r.dia > dias_mes[r.mes]) {
-        r.dia = 1;
-        r.mes = r.mes + 1;
-        if (r.mes > 12) {
-            r.mes = 1;
-            r.ano = r.ano + 1;
+    r->dia = r->dia + 1;
+    if (r->dia > dias_mes[r->mes]) {
+        r->dia = 1;
+        r->mes = r->mes + 1;
+        if (r->mes > 12) {
+            r->mes = 1;
+            r->ano = r->ano + 1;
         }
     }
-    return r;
 }
 
 void imprimir_data(Data d) {
     if (data_vazia(d)) {
         printf("--/--/----");
     } else {
-        printf("%02d/%02d/%04d", d.dia, d.mes, d.ano);
+        printf("%d/%d/%d", d.dia, d.mes, d.ano);
     }
+}
+
+int eh_digito(char c) {
+    return c >= '0' && c <= '9';
 }
 
 void normalizar_cpf(char *cpf) {
     char limpo[MAX_CPF];
     int i, j = 0;
     for (i = 0; cpf[i] != '\0' && j < MAX_CPF - 1; i++) {
-        if (isdigit((unsigned char)cpf[i])) {
+        if (eh_digito(cpf[i])) {
             limpo[j] = cpf[i];
             j = j + 1;
         }
@@ -282,7 +275,7 @@ int cpf_valido_formato(char *cpf) {
         return 0;
     }
     for (i = 0; i < 11; i++) {
-        if (!isdigit((unsigned char)cpf[i])) {
+        if (!eh_digito(cpf[i])) {
             return 0;
         }
     }
@@ -357,8 +350,17 @@ TipoQuarto ler_tipo_quarto(void) {
         printf("  3. Luxo\n");
         printf("  4. Familia\n");
         opcao = ler_inteiro("Escolha: ");
-        if (opcao >= 1 && opcao <= 4) {
-            return (TipoQuarto)opcao;
+        if (opcao == 1) {
+            return TIPO_SOLTEIRO;
+        }
+        if (opcao == 2) {
+            return TIPO_CASAL;
+        }
+        if (opcao == 3) {
+            return TIPO_LUXO;
+        }
+        if (opcao == 4) {
+            return TIPO_FAMILIA;
         }
         printf("Opcao invalida.\n");
     }
@@ -371,8 +373,11 @@ StatusQuarto ler_status_quarto(void) {
         printf("  1. Disponivel\n");
         printf("  2. Manutencao\n");
         opcao = ler_inteiro("Escolha: ");
-        if (opcao == 1 || opcao == 2) {
-            return (StatusQuarto)opcao;
+        if (opcao == 1) {
+            return QUARTO_DISPONIVEL;
+        }
+        if (opcao == 2) {
+            return QUARTO_MANUTENCAO;
         }
         printf("Opcao invalida.\n");
     }
@@ -388,67 +393,69 @@ FormaPagamento ler_forma_pagamento(void) {
         printf("  4. PIX\n");
         printf("  5. Transferencia\n");
         opcao = ler_inteiro("Escolha: ");
-        if (opcao >= 1 && opcao <= 5) {
-            return (FormaPagamento)opcao;
+        if (opcao == 1) {
+            return PAG_DINHEIRO;
+        }
+        if (opcao == 2) {
+            return PAG_CARTAO_CREDITO;
+        }
+        if (opcao == 3) {
+            return PAG_CARTAO_DEBITO;
+        }
+        if (opcao == 4) {
+            return PAG_PIX;
+        }
+        if (opcao == 5) {
+            return PAG_TRANSFERENCIA;
         }
         printf("Opcao invalida.\n");
     }
 }
 
-/* -------------------- contadores -------------------- */
-
-Contadores carregar_contadores(void) {
-    Contadores c;
-    FILE *f;
-
-    c.prox_hospede = 1;
-    c.prox_reserva = 1;
-    c.prox_hospedagem = 1;
-
-    f = fopen(ARQ_CONTADORES, "rb");
-    if (f == NULL) {
-        f = fopen(ARQ_CONTADORES, "wb");
-        if (f != NULL) {
-            fwrite(&c, sizeof(Contadores), 1, f);
-            fclose(f);
-        }
-        return c;
-    }
-    fread(&c, sizeof(Contadores), 1, f);
-    fclose(f);
-    return c;
-}
-
-void salvar_contadores(Contadores c) {
-    FILE *f = fopen(ARQ_CONTADORES, "wb");
+/* Proximo codigo = maior codigo do arquivo + 1 */
+int gerar_codigo_hospede(void) {
+    FILE *f = fopen(ARQ_HOSPEDES, "rb");
+    Hospede h;
+    int maior = 0;
     if (f != NULL) {
-        fwrite(&c, sizeof(Contadores), 1, f);
+        while (fread(&h, sizeof(Hospede), 1, f) == 1) {
+            if (h.codigo > maior) {
+                maior = h.codigo;
+            }
+        }
         fclose(f);
     }
-}
-
-int gerar_codigo_hospede(void) {
-    Contadores c = carregar_contadores();
-    int codigo = c.prox_hospede;
-    c.prox_hospede = c.prox_hospede + 1;
-    salvar_contadores(c);
-    return codigo;
+    return maior + 1;
 }
 
 int gerar_codigo_reserva(void) {
-    Contadores c = carregar_contadores();
-    int codigo = c.prox_reserva;
-    c.prox_reserva = c.prox_reserva + 1;
-    salvar_contadores(c);
-    return codigo;
+    FILE *f = fopen(ARQ_RESERVAS, "rb");
+    Reserva r;
+    int maior = 0;
+    if (f != NULL) {
+        while (fread(&r, sizeof(Reserva), 1, f) == 1) {
+            if (r.codigo > maior) {
+                maior = r.codigo;
+            }
+        }
+        fclose(f);
+    }
+    return maior + 1;
 }
 
 int gerar_codigo_hospedagem(void) {
-    Contadores c = carregar_contadores();
-    int codigo = c.prox_hospedagem;
-    c.prox_hospedagem = c.prox_hospedagem + 1;
-    salvar_contadores(c);
-    return codigo;
+    FILE *f = fopen(ARQ_HOSPEDAGENS, "rb");
+    Hospedagem h;
+    int maior = 0;
+    if (f != NULL) {
+        while (fread(&h, sizeof(Hospedagem), 1, f) == 1) {
+            if (h.codigo > maior) {
+                maior = h.codigo;
+            }
+        }
+        fclose(f);
+    }
+    return maior + 1;
 }
 
 /* -------------------- hospedes -------------------- */
@@ -515,13 +522,14 @@ int hospede_em_uso(int codigo) {
 
     if (fr != NULL) {
         while (fread(&r, sizeof(Reserva), 1, fr) == 1) {
-            if (r.codigo_hospede == codigo &&
-                (r.status == RESERVA_ATIVA || r.status == RESERVA_FINALIZADA)) {
-                fclose(fr);
-                if (fh != NULL) {
-                    fclose(fh);
+            if (r.codigo_hospede == codigo) {
+                if (r.status == RESERVA_ATIVA || r.status == RESERVA_FINALIZADA) {
+                    fclose(fr);
+                    if (fh != NULL) {
+                        fclose(fh);
+                    }
+                    return 1;
                 }
-                return 1;
             }
         }
         fclose(fr);
@@ -553,6 +561,7 @@ void imprimir_hospede(Hospede *h) {
 void incluir_hospede(void) {
     Hospede h, existente;
     char resp[8];
+    FILE *f;
 
     printf("\n=== INCLUIR HOSPEDE ===\n");
     h.codigo = 0;
@@ -590,7 +599,7 @@ void incluir_hospede(void) {
     printf("Informar data de nascimento? (s/n): ");
     ler_string(resp, 8);
     if (resp[0] == 's' || resp[0] == 'S') {
-        h.data_nascimento = ler_data("Data de nascimento");
+        ler_data("Data de nascimento", &h.data_nascimento);
     }
 
     if (buscar_hospede_por_cpf(h.cpf, &existente)) {
@@ -599,15 +608,13 @@ void incluir_hospede(void) {
     }
 
     h.codigo = gerar_codigo_hospede();
-    {
-        FILE *f = fopen(ARQ_HOSPEDES, "ab");
-        if (f == NULL) {
-            printf("Erro ao salvar hospede.\n");
-            return;
-        }
-        fwrite(&h, sizeof(Hospede), 1, f);
-        fclose(f);
+    f = fopen(ARQ_HOSPEDES, "ab");
+    if (f == NULL) {
+        printf("Erro ao salvar hospede.\n");
+        return;
     }
+    fwrite(&h, sizeof(Hospede), 1, f);
+    fclose(f);
     printf("Hospede cadastrado com sucesso! Codigo: %d\n", h.codigo);
 }
 
@@ -648,7 +655,7 @@ void alterar_hospede(void) {
     printf("Informar data de nascimento? (s/n): ");
     ler_string(resp, 8);
     if (resp[0] == 's' || resp[0] == 'S') {
-        h.data_nascimento = ler_data("Data de nascimento");
+        ler_data("Data de nascimento", &h.data_nascimento);
     } else {
         h.data_nascimento.dia = 0;
         h.data_nascimento.mes = 0;
@@ -665,7 +672,7 @@ void alterar_hospede(void) {
         printf("Erro ao abrir arquivo.\n");
         return;
     }
-    fseek(f, pos * (long)sizeof(Hospede), SEEK_SET);
+    fseek(f, pos * sizeof(Hospede), SEEK_SET);
     fwrite(&h, sizeof(Hospede), 1, f);
     fclose(f);
     printf("Hospede atualizado com sucesso.\n");
@@ -726,10 +733,10 @@ void listar_hospedes(void) {
         printf("Nenhum hospede cadastrado.\n");
         return;
     }
-    printf("%-6s %-30s %-14s %-16s\n", "Cod", "Nome", "CPF", "Telefone");
-    printf("--------------------------------------------------------------------\n");
+    printf("Cod | Nome | CPF | Telefone\n");
+    printf("----------------------------------------\n");
     while (fread(&h, sizeof(Hospede), 1, f) == 1) {
-        printf("%-6d %-30.30s %-14s %-16s\n", h.codigo, h.nome, h.cpf, h.telefone);
+        printf("%d | %s | %s | %s\n", h.codigo, h.nome, h.cpf, h.telefone);
         total = total + 1;
     }
     fclose(f);
@@ -760,29 +767,25 @@ void buscar_hospede(void) {
         } else {
             printf("Hospede nao encontrado.\n");
         }
-        return;
-    }
-    if (opcao == 2) {
+    } else if (opcao == 2) {
         printf("Nome (parcial): ");
         ler_string(termo, MAX_NOME);
         f = fopen(ARQ_HOSPEDES, "rb");
         if (f == NULL) {
             printf("Nenhum hospede cadastrado.\n");
-            return;
-        }
-        while (fread(&h, sizeof(Hospede), 1, f) == 1) {
-            if (strstr(h.nome, termo) != NULL) {
-                imprimir_hospede(&h);
-                achou = 1;
+        } else {
+            while (fread(&h, sizeof(Hospede), 1, f) == 1) {
+                if (strstr(h.nome, termo) != NULL) {
+                    imprimir_hospede(&h);
+                    achou = 1;
+                }
+            }
+            fclose(f);
+            if (!achou) {
+                printf("Nenhum hospede encontrado.\n");
             }
         }
-        fclose(f);
-        if (!achou) {
-            printf("Nenhum hospede encontrado.\n");
-        }
-        return;
-    }
-    if (opcao == 3) {
+    } else if (opcao == 3) {
         printf("CPF: ");
         ler_string(termo, MAX_CPF);
         normalizar_cpf(termo);
@@ -791,9 +794,9 @@ void buscar_hospede(void) {
         } else {
             printf("Hospede nao encontrado.\n");
         }
-        return;
+    } else {
+        printf("Opcao invalida.\n");
     }
-    printf("Opcao invalida.\n");
 }
 
 void menu_hospedes(void) {
@@ -977,7 +980,7 @@ void alterar_quarto(void) {
         printf("Erro ao abrir arquivo.\n");
         return;
     }
-    fseek(f, pos * (long)sizeof(Quarto), SEEK_SET);
+    fseek(f, pos * sizeof(Quarto), SEEK_SET);
     fwrite(&q, sizeof(Quarto), 1, f);
     fclose(f);
     printf("Quarto atualizado com sucesso.\n");
@@ -1038,12 +1041,12 @@ void listar_quartos(void) {
         printf("Nenhum quarto cadastrado.\n");
         return;
     }
-    printf("%-8s %-12s %-12s %-10s %-12s\n", "Numero", "Tipo", "Diaria", "Capac.", "Status");
-    printf("--------------------------------------------------------------\n");
+    printf("Numero | Tipo | Diaria | Capacidade | Status\n");
+    printf("----------------------------------------------\n");
     while (fread(&q, sizeof(Quarto), 1, f) == 1) {
-        printf("%-8d ", q.numero);
+        printf("%d | ", q.numero);
         imprimir_tipo_quarto(q.tipo);
-        printf("\t R$ %-8.2f %-10d ", q.valor_diaria, q.capacidade);
+        printf(" | R$ %.2f | %d | ", q.valor_diaria, q.capacidade);
         imprimir_status_quarto(q.status);
         printf("\n");
         total = total + 1;
@@ -1132,18 +1135,15 @@ int quarto_disponivel_periodo(int numero_quarto, Data inicio, Data fim, int codi
     fr = fopen(ARQ_RESERVAS, "rb");
     if (fr != NULL) {
         while (fread(&r, sizeof(Reserva), 1, fr) == 1) {
-            if (r.status != RESERVA_ATIVA) {
-                continue;
-            }
-            if (r.numero_quarto != numero_quarto) {
-                continue;
-            }
-            if (codigo_ignorar > 0 && r.codigo == codigo_ignorar) {
-                continue;
-            }
-            if (periodos_sobrepoem(inicio, fim, r.checkin, r.checkout)) {
-                fclose(fr);
-                return 0;
+            if (r.status == RESERVA_ATIVA) {
+                if (r.numero_quarto == numero_quarto) {
+                    if (!(codigo_ignorar > 0 && r.codigo == codigo_ignorar)) {
+                        if (periodos_sobrepoem(inicio, fim, r.checkin, r.checkout)) {
+                            fclose(fr);
+                            return 0;
+                        }
+                    }
+                }
             }
         }
         fclose(fr);
@@ -1152,19 +1152,18 @@ int quarto_disponivel_periodo(int numero_quarto, Data inicio, Data fim, int codi
     fh = fopen(ARQ_HOSPEDAGENS, "rb");
     if (fh != NULL) {
         while (fread(&hp, sizeof(Hospedagem), 1, fh) == 1) {
-            if (hp.numero_quarto != numero_quarto) {
-                continue;
-            }
-            if (hp.finalizada) {
-                saida_efetiva = hp.saida_real;
-            } else {
-                saida_efetiva.dia = 31;
-                saida_efetiva.mes = 12;
-                saida_efetiva.ano = 2099;
-            }
-            if (periodos_sobrepoem(inicio, fim, hp.entrada_real, saida_efetiva)) {
-                fclose(fh);
-                return 0;
+            if (hp.numero_quarto == numero_quarto) {
+                if (hp.finalizada) {
+                    saida_efetiva = hp.saida_real;
+                } else {
+                    saida_efetiva.dia = 31;
+                    saida_efetiva.mes = 12;
+                    saida_efetiva.ano = 2099;
+                }
+                if (periodos_sobrepoem(inicio, fim, hp.entrada_real, saida_efetiva)) {
+                    fclose(fh);
+                    return 0;
+                }
             }
         }
         fclose(fh);
@@ -1240,8 +1239,8 @@ void verificar_disponibilidade_menu(void) {
         return;
     }
     imprimir_quarto(&q);
-    inicio = ler_data("Data inicio");
-    fim = ler_data("Data fim");
+    ler_data("Data inicio", &inicio);
+    ler_data("Data fim", &fim);
     if (comparar_datas(inicio, fim) >= 0) {
         printf("A data fim deve ser posterior a data inicio.\n");
         return;
@@ -1286,8 +1285,8 @@ void incluir_reserva(void) {
     printf("Quarto %d - diaria R$ %.2f - capacidade %d\n",
            q.numero, q.valor_diaria, q.capacidade);
 
-    r.checkin = ler_data("Data de check-in");
-    r.checkout = ler_data("Data de check-out");
+    ler_data("Data de check-in", &r.checkin);
+    ler_data("Data de check-out", &r.checkout);
     if (comparar_datas(r.checkin, r.checkout) >= 0) {
         printf("Check-out deve ser posterior ao check-in.\n");
         return;
@@ -1355,8 +1354,8 @@ void alterar_reserva(void) {
         printf("Quarto em manutencao.\n");
         return;
     }
-    r.checkin = ler_data("Data de check-in");
-    r.checkout = ler_data("Data de check-out");
+    ler_data("Data de check-in", &r.checkin);
+    ler_data("Data de check-out", &r.checkout);
     if (comparar_datas(r.checkin, r.checkout) >= 0) {
         printf("Datas invalidas.\n");
         return;
@@ -1377,7 +1376,7 @@ void alterar_reserva(void) {
         printf("Erro ao abrir arquivo.\n");
         return;
     }
-    fseek(f, pos * (long)sizeof(Reserva), SEEK_SET);
+    fseek(f, pos * sizeof(Reserva), SEEK_SET);
     fwrite(&r, sizeof(Reserva), 1, f);
     fclose(f);
     printf("Reserva atualizada. Novo valor estimado: R$ %.2f\n", r.valor_estimado);
@@ -1410,7 +1409,7 @@ void cancelar_reserva(void) {
         printf("Erro ao abrir arquivo.\n");
         return;
     }
-    fseek(f, pos * (long)sizeof(Reserva), SEEK_SET);
+    fseek(f, pos * sizeof(Reserva), SEEK_SET);
     fwrite(&r, sizeof(Reserva), 1, f);
     fclose(f);
     printf("Reserva cancelada. Quarto liberado no periodo.\n");
@@ -1470,15 +1469,14 @@ void listar_reservas(void) {
         printf("Nenhuma reserva cadastrada.\n");
         return;
     }
-    printf("%-6s %-8s %-8s %-12s %-12s %-10s %-12s\n",
-           "Cod", "Hosp.", "Quarto", "Check-in", "Check-out", "Valor", "Status");
-    printf("----------------------------------------------------------------------------\n");
+    printf("Cod | Hosp. | Quarto | Check-in | Check-out | Valor | Status\n");
+    printf("------------------------------------------------------------\n");
     while (fread(&r, sizeof(Reserva), 1, f) == 1) {
-        printf("%-6d %-8d %-8d %02d/%02d/%04d  %02d/%02d/%04d  R$ %-7.2f ",
-               r.codigo, r.codigo_hospede, r.numero_quarto,
-               r.checkin.dia, r.checkin.mes, r.checkin.ano,
-               r.checkout.dia, r.checkout.mes, r.checkout.ano,
-               r.valor_estimado);
+        printf("%d | %d | %d | ", r.codigo, r.codigo_hospede, r.numero_quarto);
+        imprimir_data(r.checkin);
+        printf(" | ");
+        imprimir_data(r.checkout);
+        printf(" | R$ %.2f | ", r.valor_estimado);
         imprimir_status_reserva(r.status);
         printf("\n");
         total = total + 1;
@@ -1681,7 +1679,7 @@ void checkin_por_reserva(void) {
         return;
     }
 
-    entrada = ler_data("Data real de entrada");
+    ler_data("Data real de entrada", &entrada);
     if (!quarto_disponivel_periodo(r.numero_quarto, entrada, r.checkout, r.codigo)) {
         printf("Conflito de disponibilidade no periodo.\n");
         return;
@@ -1713,7 +1711,7 @@ void checkin_por_reserva(void) {
     pos = posicao_reserva(r.codigo);
     f = fopen(ARQ_RESERVAS, "rb+");
     if (f != NULL && pos >= 0) {
-        fseek(f, pos * (long)sizeof(Reserva), SEEK_SET);
+        fseek(f, pos * sizeof(Reserva), SEEK_SET);
         fwrite(&r, sizeof(Reserva), 1, f);
         fclose(f);
     }
@@ -1753,8 +1751,8 @@ void checkin_direto(void) {
         return;
     }
 
-    h.entrada_real = ler_data("Data de entrada");
-    saida_prevista = ler_data("Data prevista de saida");
+    ler_data("Data de entrada", &h.entrada_real);
+    ler_data("Data prevista de saida", &saida_prevista);
     if (comparar_datas(h.entrada_real, saida_prevista) >= 0) {
         printf("Data de saida deve ser posterior a entrada.\n");
         return;
@@ -1811,7 +1809,7 @@ void checkout(void) {
     pos = posicao_hospedagem(codigo);
     imprimir_hospedagem(&h);
 
-    h.saida_real = ler_data("Data real de saida");
+    ler_data("Data real de saida", &h.saida_real);
     if (comparar_datas(h.entrada_real, h.saida_real) >= 0) {
         printf("Data de saida deve ser posterior a entrada.\n");
         return;
@@ -1844,7 +1842,7 @@ void checkout(void) {
         printf("Erro ao atualizar hospedagem.\n");
         return;
     }
-    fseek(f, pos * (long)sizeof(Hospedagem), SEEK_SET);
+    fseek(f, pos * sizeof(Hospedagem), SEEK_SET);
     fwrite(&h, sizeof(Hospedagem), 1, f);
     fclose(f);
 
@@ -1865,19 +1863,18 @@ void listar_hospedagens(void) {
         printf("Nenhuma hospedagem registrada.\n");
         return;
     }
-    printf("%-6s %-8s %-8s %-12s %-12s %-10s %-12s\n",
-           "Cod", "Hosp.", "Quarto", "Entrada", "Saida", "Valor", "Situacao");
-    printf("----------------------------------------------------------------------------\n");
+    printf("Cod | Hosp. | Quarto | Entrada | Saida | Valor | Situacao\n");
+    printf("---------------------------------------------------------\n");
     while (fread(&h, sizeof(Hospedagem), 1, f) == 1) {
-        printf("%-6d %-8d %-8d %02d/%02d/%04d  ",
-               h.codigo, h.codigo_hospede, h.numero_quarto,
-               h.entrada_real.dia, h.entrada_real.mes, h.entrada_real.ano);
+        printf("%d | %d | %d | ", h.codigo, h.codigo_hospede, h.numero_quarto);
+        imprimir_data(h.entrada_real);
+        printf(" | ");
         if (h.finalizada) {
-            printf("%02d/%02d/%04d  ", h.saida_real.dia, h.saida_real.mes, h.saida_real.ano);
+            imprimir_data(h.saida_real);
         } else {
-            printf("%-12s ", "Em curso");
+            printf("Em curso");
         }
-        printf("R$ %-7.2f %s\n", h.valor_final, h.finalizada ? "Finalizada" : "Andamento");
+        printf(" | R$ %.2f | %s\n", h.valor_final, h.finalizada ? "Finalizada" : "Andamento");
         total = total + 1;
     }
     fclose(f);
@@ -1942,8 +1939,8 @@ void relatorio_reservas_periodo(void) {
     int encontrados = 0;
 
     printf("\n=== RESERVAS POR PERIODO ===\n");
-    inicio = ler_data("Inicio do periodo");
-    fim = ler_data("Fim do periodo");
+    ler_data("Inicio do periodo", &inicio);
+    ler_data("Fim do periodo", &fim);
     if (comparar_datas(inicio, fim) > 0) {
         printf("Periodo invalido.\n");
         return;
@@ -1954,15 +1951,15 @@ void relatorio_reservas_periodo(void) {
         printf("Nenhuma reserva encontrada.\n");
         return;
     }
-    printf("\n%-6s %-8s %-8s %-12s %-12s %-12s\n",
-           "Cod", "Hosp.", "Quarto", "Check-in", "Check-out", "Status");
-    printf("------------------------------------------------------------------\n");
+    printf("\nCod | Hosp. | Quarto | Check-in | Check-out | Status\n");
+    printf("----------------------------------------------------\n");
     while (fread(&r, sizeof(Reserva), 1, f) == 1) {
         if (comparar_datas(r.checkin, inicio) >= 0 && comparar_datas(r.checkin, fim) <= 0) {
-            printf("%-6d %-8d %-8d %02d/%02d/%04d  %02d/%02d/%04d  ",
-                   r.codigo, r.codigo_hospede, r.numero_quarto,
-                   r.checkin.dia, r.checkin.mes, r.checkin.ano,
-                   r.checkout.dia, r.checkout.mes, r.checkout.ano);
+            printf("%d | %d | %d | ", r.codigo, r.codigo_hospede, r.numero_quarto);
+            imprimir_data(r.checkin);
+            printf(" | ");
+            imprimir_data(r.checkout);
+            printf(" | ");
             imprimir_status_reserva(r.status);
             printf("\n");
             encontrados = encontrados + 1;
@@ -1983,8 +1980,8 @@ void relatorio_hospedes_atuais(void) {
     int encontrados = 0;
 
     printf("\n=== HOSPEDES ATUALMENTE HOSPEDADOS ===\n");
-    printf("%-6s %-30s %-8s %-12s\n", "Cod.H", "Nome", "Quarto", "Entrada");
-    printf("--------------------------------------------------------------------\n");
+    printf("Cod.H | Nome | Quarto | Entrada\n");
+    printf("--------------------------------\n");
     if (f == NULL) {
         printf("Nenhum hospede hospedado no momento.\n");
         return;
@@ -1994,9 +1991,9 @@ void relatorio_hospedes_atuais(void) {
             if (!buscar_hospede_por_codigo(h.codigo_hospede, &hosp)) {
                 strcpy(hosp.nome, "(desconhecido)");
             }
-            printf("%-6d %-30.30s %-8d %02d/%02d/%04d\n",
-                   h.codigo_hospede, hosp.nome, h.numero_quarto,
-                   h.entrada_real.dia, h.entrada_real.mes, h.entrada_real.ano);
+            printf("%d | %s | %d | ", h.codigo_hospede, hosp.nome, h.numero_quarto);
+            imprimir_data(h.entrada_real);
+            printf("\n");
             encontrados = encontrados + 1;
         }
     }
@@ -2015,25 +2012,24 @@ void relatorio_quartos_disponiveis_data(void) {
     int encontrados = 0;
 
     printf("\n=== QUARTOS DISPONIVEIS EM UMA DATA ===\n");
-    data = ler_data("Data");
-    dia_seguinte = data_mais_um_dia(data);
+    ler_data("Data", &data);
+    data_mais_um_dia(data, &dia_seguinte);
 
     f = fopen(ARQ_QUARTOS, "rb");
     if (f == NULL) {
         printf("Nenhum quarto cadastrado.\n");
         return;
     }
-    printf("\n%-8s %-12s %-12s %-10s\n", "Numero", "Tipo", "Diaria", "Capacidade");
-    printf("--------------------------------------------------\n");
+    printf("\nNumero | Tipo | Diaria | Capacidade\n");
+    printf("------------------------------------\n");
     while (fread(&q, sizeof(Quarto), 1, f) == 1) {
-        if (q.status == QUARTO_MANUTENCAO) {
-            continue;
-        }
-        if (quarto_disponivel_periodo(q.numero, data, dia_seguinte, 0)) {
-            printf("%-8d ", q.numero);
-            imprimir_tipo_quarto(q.tipo);
-            printf("\t R$ %-8.2f %-10d\n", q.valor_diaria, q.capacidade);
-            encontrados = encontrados + 1;
+        if (q.status != QUARTO_MANUTENCAO) {
+            if (quarto_disponivel_periodo(q.numero, data, dia_seguinte, 0)) {
+                printf("%d | ", q.numero);
+                imprimir_tipo_quarto(q.tipo);
+                printf(" | R$ %.2f | %d\n", q.valor_diaria, q.capacidade);
+                encontrados = encontrados + 1;
+            }
         }
     }
     fclose(f);
@@ -2053,8 +2049,8 @@ void relatorio_faturamento_periodo(void) {
 
     printf("\n=== FATURAMENTO POR PERIODO ===\n");
     printf("(Considera hospedagens com check-out no periodo)\n");
-    inicio = ler_data("Inicio do periodo");
-    fim = ler_data("Fim do periodo");
+    ler_data("Inicio do periodo", &inicio);
+    ler_data("Fim do periodo", &fim);
     if (comparar_datas(inicio, fim) > 0) {
         printf("Periodo invalido.\n");
         return;
@@ -2065,23 +2061,20 @@ void relatorio_faturamento_periodo(void) {
         printf("Nenhuma hospedagem finalizada no periodo.\n");
         return;
     }
-    printf("\n%-6s %-8s %-8s %-12s %-10s %-16s\n",
-           "Cod", "Hosp.", "Quarto", "Saida", "Valor", "Pagamento");
-    printf("--------------------------------------------------------------------\n");
+    printf("\nCod | Hosp. | Quarto | Saida | Valor | Pagamento\n");
+    printf("-----------------------------------------------\n");
     while (fread(&h, sizeof(Hospedagem), 1, f) == 1) {
-        if (!h.finalizada) {
-            continue;
-        }
-        if (comparar_datas(h.saida_real, inicio) >= 0 &&
-            comparar_datas(h.saida_real, fim) <= 0) {
-            printf("%-6d %-8d %-8d %02d/%02d/%04d  R$ %-7.2f ",
-                   h.codigo, h.codigo_hospede, h.numero_quarto,
-                   h.saida_real.dia, h.saida_real.mes, h.saida_real.ano,
-                   h.valor_final);
-            imprimir_forma_pagamento(h.forma_pagamento);
-            printf("\n");
-            total_fat = total_fat + h.valor_final;
-            contagem = contagem + 1;
+        if (h.finalizada) {
+            if (comparar_datas(h.saida_real, inicio) >= 0 &&
+                comparar_datas(h.saida_real, fim) <= 0) {
+                printf("%d | %d | %d | ", h.codigo, h.codigo_hospede, h.numero_quarto);
+                imprimir_data(h.saida_real);
+                printf(" | R$ %.2f | ", h.valor_final);
+                imprimir_forma_pagamento(h.forma_pagamento);
+                printf("\n");
+                total_fat = total_fat + h.valor_final;
+                contagem = contagem + 1;
+            }
         }
     }
     fclose(f);
