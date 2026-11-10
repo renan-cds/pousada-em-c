@@ -21,6 +21,8 @@ make
 make run
 ```
 
+A interface usa **cores ANSI** (só `printf`). Fica melhor no Terminal do Windows 10+, Windows Terminal, Linux ou macOS. No Prompt antigo do Windows as cores podem não aparecer, mas o sistema continua funcionando.
+
 ## Arquivos gerados
 
 Na pasta do programa:
