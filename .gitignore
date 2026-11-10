@@ -1,3 +1,9 @@
+# Projeto pousada
+pousada
+test_disponibilidade
+obj/
+data/*.dat
+
 # Prerequisites
 *.d
 
