@@ -10,7 +10,6 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define MAX_NOME 80
@@ -1640,7 +1639,11 @@ void imprimir_hospedagem(Hospedagem *h) {
     if (h->observacoes[0] != '\0') {
         printf("Obs: %s\n", h->observacoes);
     }
-    printf("Situacao: %s\n", h->finalizada ? "Finalizada" : "Em andamento");
+    if (h->finalizada) {
+        printf("Situacao: Finalizada\n");
+    } else {
+        printf("Situacao: Em andamento\n");
+    }
 }
 
 void checkin_por_reserva(void) {
@@ -1874,7 +1877,12 @@ void listar_hospedagens(void) {
         } else {
             printf("Em curso");
         }
-        printf(" | R$ %.2f | %s\n", h.valor_final, h.finalizada ? "Finalizada" : "Andamento");
+        printf(" | R$ %.2f | ", h.valor_final);
+        if (h.finalizada) {
+            printf("Finalizada\n");
+        } else {
+            printf("Andamento\n");
+        }
         total = total + 1;
     }
     fclose(f);
